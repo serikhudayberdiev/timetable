@@ -93,7 +93,9 @@ const scheduleData = {
     Friday: [
         [],
         [],
-        [],
+        [
+          { subject: "Лексикология английского языка", type: "Пр.", startWeek: 2, endWeek: 12, hours: 22, professor: "Исмагилова Г.К.", room: "249(2)", link: "https://telemost.yandex.ru/j/89349265968024" }
+        ],
         [
             { subject: "Практика по профилю подготовки (русский язык)", type: "Пр.", startWeek: 1, endWeek: 17, hours: 34, professor: "Нуруллина Г.М.", room: "249(2)", link: "https://telemost.yandex.ru/j/89349265968024" }
         ],
@@ -108,11 +110,9 @@ const scheduleData = {
         ]
     ],
     Saturday: [
+        [],
         [
             { subject: "Методика написания курсовой работы", type: "Пр.", startWeek: 1, endWeek: 6, hours: 12, professor: "Лукоянова Ю.К.", room: "304" }
-        ],
-        [
-            { subject: "Лексикология английского языка", type: "Пр.", startWeek: 1, endWeek: 11, hours: 22, professor: "Туганова С.В.", room: "219/220" }
         ],
         [
             { subject: "Элективные курсы по физической культуре и спорту", type: "Пр.", startWeek: 1, endWeek: 17, hours: 34, professor: "Бутлерова", room: "4" }
