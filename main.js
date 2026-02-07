@@ -126,240 +126,245 @@ const scheduleData = {
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Adjust getDay() to match Monday=0 index
+// Adjust getDay() to match Monday=0 index (assuming daysOfWeek starts with Monday)
 let currentDay = daysOfWeek[(new Date().getDay() + 6) % 7];
 
 function getWeekNumber() {
-  const startDate = new Date(2025, 8, 1); // Sept 1, 2025
-  const now = new Date();
-  if (now < startDate) return 0;
-  return Math.floor((now - startDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
+    const startDate = new Date(2026, 1, 9); // September 1, 2025 (corrected from Feb 9, 2026)
+    const now = new Date();
+    if (now < startDate) return 0;
+    return Math.floor((now - startDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
 function getClassesForWeek(classes, currentWeek) {
-  if (!classes) return null;
-  if (!Array.isArray(classes)) classes = [classes];
-  const filtered = classes.filter(c => {
-    if ('startWeek' in c && 'endWeek' in c) {
-      return currentWeek >= c.startWeek && currentWeek <= c.endWeek;
-    }
-    return true;
-  });
-  return filtered.length ? filtered : null;
+    if (!classes) return null;
+    if (!Array.isArray(classes)) classes = [classes];
+    const filtered = classes.filter(c => {
+        if ('startWeek' in c && 'endWeek' in c) {
+            return currentWeek >= c.startWeek && currentWeek <= c.endWeek;
+        }
+        return true;
+    });
+    return filtered.length ? filtered : null;
+}
+
+// Helper to render a single pair row (used for both single day and whole week)
+function renderPairRow(pair, classesToRender, tbody) {
+    if (!classesToRender || classesToRender.length === 0) return;
+
+    const tr = document.createElement('tr');
+    tr.classList.add('hover:bg-indigo-50', 'transition');
+
+    // Time cell
+    const timeCell = document.createElement('td');
+    timeCell.className = 'px-6 py-3 align-top';
+    timeCell.textContent = `${pair.start} - ${pair.end}`;
+    tr.appendChild(timeCell);
+
+    // Subject cell
+    const subjectCell = document.createElement('td');
+    subjectCell.className = 'px-6 py-3';
+    subjectCell.innerHTML = classesToRender.map(cls => {
+        const groupText = cls.group ? `(${cls.group}) ` : '';
+        if (cls.link) {
+            return `<div><a href="${cls.link}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800">${groupText}${cls.subject || ''}</a></div>`;
+        } else {
+            return `<div>${groupText}${cls.subject || ''}</div>`;
+        }
+    }).join('');
+    tr.appendChild(subjectCell);
+
+    // Room cell
+    const roomCell = document.createElement('td');
+    roomCell.className = 'px-6 py-3';
+    roomCell.innerHTML = classesToRender.map(cls => `<div>${cls.room || ''}</div>`).join('');
+    tr.appendChild(roomCell);
+
+    // Professor cell
+    const profCell = document.createElement('td');
+    profCell.className = 'px-6 py-3';
+    profCell.innerHTML = classesToRender.map(cls => {
+        if (cls.professor) return `<div>${cls.professor}</div>`;
+        if (cls.professors) return `<div>${cls.professors.join(', ')}</div>`;
+        return `<div></div>`;
+    }).join('');
+    tr.appendChild(profCell);
+
+    tbody.appendChild(tr);
 }
 
 function renderSchedule() {
-  const currentWeek = getWeekNumber();
-  document.getElementById('weekNumber').textContent = currentWeek;
-  const dayLabel = currentDay === 'WholeWeek' ? 'Whole Week' : currentDay;
-  document.getElementById('currentDay').textContent = dayLabel;
-  const tbody = document.getElementById('scheduleBody');
-  tbody.innerHTML = '';
-  if (currentDay === 'WholeWeek') {
-    // For whole week, you can adapt similarly if needed
-    daysOfWeek.forEach(day => {
-      const daySchedule = scheduleData[day] || Array(pairsTimeRanges.length).fill(null);
-      // Day header row
-      const headerRow = document.createElement('tr');
-      headerRow.classList.add('bg-indigo-100', 'font-bold', 'text-indigo-900');
-      headerRow.innerHTML = `<td colspan="4" class="text-center py-1">${day}</td>`;
-      tbody.appendChild(headerRow);
-      pairsTimeRanges.forEach((pair, index) => {
-        const pairData = daySchedule[index];
-        const classesToRender = getClassesForWeek(pairData, currentWeek);
-        if (classesToRender && classesToRender.length > 0) {
-          const tr = document.createElement('tr');
-          tr.classList.add('hover:bg-indigo-50', 'transition');
-          // Time cell
-          const timeCell = document.createElement('td');
-          timeCell.className = 'px-6 py-3 align-top';
-          timeCell.textContent = `${pair.start} - ${pair.end}`;
-          tr.appendChild(timeCell);
-          // Subject cell
-          const subjectCell = document.createElement('td');
-          subjectCell.className = 'px-6 py-3';
-          subjectCell.innerHTML = classesToRender.map(cls => {
-            const groupText = cls.group ? `(${cls.group}) ` : '';
-            if (cls.link) {
-              return `<div><a href="${cls.link}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800">${groupText}${cls.subject || ''}</a></div>`;
-            } else {
-              return `<div>${groupText}${cls.subject || ''}</div>`;
-            }
-          }).join('');
-          tr.appendChild(subjectCell);
-          // Room cell
-          const roomCell = document.createElement('td');
-          roomCell.className = 'px-6 py-3';
-          roomCell.innerHTML = classesToRender.map(cls => `<div>${cls.room || ''}</div>`).join('');
-          tr.appendChild(roomCell);
-          // Professor cell
-          const profCell = document.createElement('td');
-          profCell.className = 'px-6 py-3';
-          profCell.innerHTML = classesToRender.map(cls => {
-            if (cls.professor) return `<div>${cls.professor}</div>`;
-            if (cls.professors) return `<div>${cls.professors.join(', ')}</div>`;
-            return `<div></div>`;
-          }).join('');
-          tr.appendChild(profCell);
-          tbody.appendChild(tr);
-        }
-      });
-    });
-  } else {
-    // Single day rendering
-    const daySchedule = scheduleData[currentDay] || Array(pairsTimeRanges.length).fill(null);
-    let hasAnyClass = false;
-    pairsTimeRanges.forEach((pair, index) => {
-      const pairData = daySchedule[index];
-      const classesToRender = getClassesForWeek(pairData, currentWeek);
-      if (classesToRender && classesToRender.length > 0) {
-        hasAnyClass = true;
-        const tr = document.createElement('tr');
-        tr.classList.add('hover:bg-indigo-100', 'transition');
-        // Time cell
-        const timeCell = document.createElement('td');
-        timeCell.className = 'px-6 py-3 align-top';
-        timeCell.textContent = `${pair.start} - ${pair.end}`;
-        tr.appendChild(timeCell);
-        // Subject cell
-        const subjectCell = document.createElement('td');
-        subjectCell.className = 'px-6 py-3';
-        subjectCell.innerHTML = classesToRender.map(cls => {
-          const groupText = cls.group ? `(${cls.group}) ` : '';
-          if (cls.link) {
-            return `<div><a href="${cls.link}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800">${groupText}${cls.subject || ''}</a></div>`;
-          } else {
-            return `<div>${groupText}${cls.subject || ''}</div>`;
-          }
-        }).join('');
-        tr.appendChild(subjectCell);
-        // Room cell
-        const roomCell = document.createElement('td');
-        roomCell.className = 'px-6 py-3';
-        roomCell.innerHTML = classesToRender.map(cls => `<div>${cls.room || ''}</div>`).join('');
-        tr.appendChild(roomCell);
-        // Professor cell
-        const profCell = document.createElement('td');
-        profCell.className = 'px-6 py-3';
-        profCell.innerHTML = classesToRender.map(cls => {
-          if (cls.professor) return `<div>${cls.professor}</div>`;
-          if (cls.professors) return `<div>${cls.professors.join(', ')}</div>`;
-          return `<div></div>`;
-        }).join('');
-        tr.appendChild(profCell);
-        tbody.appendChild(tr);
-      }
-    });
-    if (!hasAnyClass) {
-      const tr = document.createElement('tr');
-      tr.classList.add('text-center', 'italic', 'text-gray-400');
-      tr.innerHTML = `<td colspan="4" class="px-6 py-4">No classes today</td>`;
-      tbody.appendChild(tr);
+    const currentWeek = getWeekNumber();
+    const weekNumberEl = document.getElementById('weekNumber');
+    if (weekNumberEl) weekNumberEl.textContent = currentWeek;
+
+    const currentDayEl = document.getElementById('currentDay');
+    const dayLabel = currentDay === 'WholeWeek' ? 'Whole Week' : currentDay;
+    if (currentDayEl) currentDayEl.textContent = dayLabel;
+
+    const tbody = document.getElementById('scheduleBody');
+    if (!tbody) {
+        console.error('Schedule body element not found');
+        return;
     }
-  }
+    tbody.innerHTML = '';
+
+    if (currentDay === 'WholeWeek') {
+        daysOfWeek.forEach(day => {
+            const daySchedule = scheduleData[day] || Array(pairsTimeRanges.length).fill(null);
+            let hasAnyClass = false;
+
+            // Day header row
+            const headerRow = document.createElement('tr');
+            headerRow.classList.add('bg-indigo-100', 'font-bold', 'text-indigo-900');
+            headerRow.innerHTML = `<td colspan="4" class="text-center py-1">${day}</td>`;
+            tbody.appendChild(headerRow);
+
+            pairsTimeRanges.forEach((pair, index) => {
+                const pairData = daySchedule[index];
+                const classesToRender = getClassesForWeek(pairData, currentWeek);
+                if (classesToRender && classesToRender.length > 0) {
+                    hasAnyClass = true;
+                    renderPairRow(pair, classesToRender, tbody);
+                }
+            });
+
+            if (!hasAnyClass) {
+                const tr = document.createElement('tr');
+                tr.classList.add('text-center', 'italic', 'text-gray-400');
+                tr.innerHTML = `<td colspan="4" class="px-6 py-4">No classes on ${day}</td>`;
+                tbody.appendChild(tr);
+            }
+        });
+    } else {
+        // Single day rendering
+        const daySchedule = scheduleData[currentDay] || Array(pairsTimeRanges.length).fill(null);
+        let hasAnyClass = false;
+        pairsTimeRanges.forEach((pair, index) => {
+            const pairData = daySchedule[index];
+            const classesToRender = getClassesForWeek(pairData, currentWeek);
+            if (classesToRender && classesToRender.length > 0) {
+                hasAnyClass = true;
+                renderPairRow(pair, classesToRender, tbody);
+            }
+        });
+        if (!hasAnyClass) {
+            const tr = document.createElement('tr');
+            tr.classList.add('text-center', 'italic', 'text-gray-400');
+            tr.innerHTML = `<td colspan="4" class="px-6 py-4">No classes today</td>`;
+            tbody.appendChild(tr);
+        }
+    }
 }
 
 function updateCurrentTime() {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('ru-RU', { hour12: false });
-  document.getElementById('currentTime').textContent = timeStr;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ru-RU', { hour12: false });
+    const timeElement = document.getElementById('currentTime');
+    if (timeElement) {
+        timeElement.textContent = timeStr;
+    }
 }
 
 function formatDuration(ms) {
-  let totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  totalSeconds %= 3600;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+    let totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    totalSeconds %= 3600;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
 
-  let parts = [];
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  parts.push(`${seconds}s`);
-  return parts.join(' ');
+    let parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`); // Always show seconds if nothing else
+    return parts.join(' ');
 }
 
 function updateTimer() {
-  const now = new Date();
-  const timerTextEl = document.getElementById('timerText');
-  const currentDayEl = document.getElementById('currentDay');
+    const now = new Date();
+    const timerTextEl = document.getElementById('timerText');
+    const currentDayEl = document.getElementById('currentDay');
+    if (!timerTextEl || !currentDayEl) return;
 
-  currentDayEl.textContent = currentDay;
+    currentDayEl.textContent = currentDay;
 
-  if (!currentDay || !scheduleData[currentDay]) {
-    timerTextEl.textContent = "This is this week's timetable";
-    return;
-  }
-
-  const daySchedule = scheduleData[currentDay];
-  const currentWeek = getWeekNumber();
-
-  let timerSet = false;
-
-  for (let i = 0; i < pairsTimeRanges.length; i++) {
-    const pair = pairsTimeRanges[i];
-    const [startH, startM] = pair.start.split(':').map(Number);
-    const [endH, endM] = pair.end.split(':').map(Number);
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, startM);
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM);
-
-    const pairClasses = daySchedule[i];
-    const classesToRender = getClassesForWeek(pairClasses, currentWeek);
-
-    if (!classesToRender || classesToRender.length === 0) {
-      continue;
+    // Only show timer for the current day; otherwise, show a static message
+    const today = daysOfWeek[(new Date().getDay() + 6) % 7];
+    if (currentDay !== today || currentDay === 'WholeWeek' || !scheduleData[currentDay]) {
+        timerTextEl.textContent = currentDay === 'WholeWeek' ? "This is this week's timetable" : "Select today to see the live timer";
+        return;
     }
 
-    if (now < start) {
-      const diff = start - now;
-      timerTextEl.textContent = `Next pair starts in ${formatDuration(diff)}`;
-      timerSet = true;
-      break;
-    } else if (now >= start && now < end) {
-      const diff = end - now;
-      timerTextEl.textContent = `Current pair ends in ${formatDuration(diff)}`;
-      timerSet = true;
-      break;
-    }
-  }
+    const daySchedule = scheduleData[currentDay];
+    const currentWeek = getWeekNumber();
+    let timerSet = false;
 
-  if (!timerSet) {
-    timerTextEl.textContent = `No more classes today`;
-  }
+    for (let i = 0; i < pairsTimeRanges.length; i++) {
+        const pair = pairsTimeRanges[i];
+        const [startH, startM] = pair.start.split(':').map(Number);
+        const [endH, endM] = pair.end.split(':').map(Number);
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, startM);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM);
+
+        const pairClasses = daySchedule[i];
+        const classesToRender = getClassesForWeek(pairClasses, currentWeek);
+
+        if (!classesToRender || classesToRender.length === 0) continue;
+
+        if (now < start) {
+            const diff = start - now;
+            timerTextEl.textContent = `Next pair starts in ${formatDuration(diff)}`;
+            timerSet = true;
+            break;
+        } else if (now >= start && now < end) {
+            const diff = end - now;
+            timerTextEl.textContent = `Current pair ends in ${formatDuration(diff)}`;
+            timerSet = true;
+            break;
+        }
+    }
+
+    if (!timerSet) {
+        timerTextEl.textContent = 'No more classes today';
+    }
 }
 
 // Add event listeners to day buttons
 document.querySelectorAll('.day-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentDay = btn.getAttribute('data-day');
-    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300'));
-    btn.classList.add('ring-4', 'ring-offset-2', 'ring-blue-300');
-    // Remove highlight from showWeekBtn
-    document.getElementById('showWeekBtn').classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300');
-    renderSchedule();
-    updateTimer();
-  });
+    btn.addEventListener('click', () => {
+        currentDay = btn.getAttribute('data-day');
+        document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300'));
+        btn.classList.add('ring-4', 'ring-offset-2', 'ring-blue-300');
+        // Remove highlight from showWeekBtn
+        const showWeekBtn = document.getElementById('showWeekBtn');
+        if (showWeekBtn) showWeekBtn.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300');
+        renderSchedule();
+        updateTimer();
+    });
 });
 
 // Show whole week button
-document.getElementById('showWeekBtn').addEventListener('click', () => {
-  currentDay = 'WholeWeek';
-  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300'));
-  document.getElementById('showWeekBtn').classList.add('ring-4', 'ring-offset-2', 'ring-blue-300');
-  renderSchedule();
-  updateTimer();
-});
+const showWeekBtn = document.getElementById('showWeekBtn');
+if (showWeekBtn) {
+    showWeekBtn.addEventListener('click', () => {
+        currentDay = 'WholeWeek';
+        document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300'));
+        showWeekBtn.classList.add('ring-4', 'ring-offset-2', 'ring-blue-300');
+        renderSchedule();
+        updateTimer();
+    });
+}
 
-// Highlight today's button initially
+// Highlight today's button initially (if valid)
 const initBtn = document.querySelector(`.day-btn[data-day="${currentDay}"]`);
 if (initBtn) initBtn.classList.add('ring-4', 'ring-offset-2', 'ring-blue-300');
 
-// Initial render and timer update
+// Initial render and updates
 renderSchedule();
 updateCurrentTime();
 updateTimer();
 
 setInterval(() => {
-  updateCurrentTime();
-  updateTimer();
+    updateCurrentTime();
+    updateTimer();
 }, 1000);
