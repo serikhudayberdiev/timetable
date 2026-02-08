@@ -125,25 +125,38 @@ const scheduleData = {
 };
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+// Map for Russian day names
+const dayNamesRu = {
+    'Monday': 'Понедельник',
+    'Tuesday': 'Вторник',
+    'Wednesday': 'Среда',
+    'Thursday': 'Четверг',
+    'Friday': 'Пятница',
+    'Saturday': 'Суббота',
+    'WholeWeek': 'Вся неделя'
+};
 
 // Adjust getDay() to match Monday=0 index (assuming daysOfWeek starts with Monday)
 let currentDay = daysOfWeek[(new Date().getDay() + 6) % 7];
+let weekOffset = 0; // New variable to offset the week (0 = current, 1 = next, -1 = previous, etc.)
 
 function getWeekNumber() {
-    const startDate = new Date(2026, 1, 9); // September 1, 2025 (corrected from Feb 9, 2026)
+    const startDate = new Date(2026, 1, 9);
     const now = new Date();
     if (now < startDate) return 0;
     return Math.floor((now - startDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
 function getClassesForWeek(classes, currentWeek) {
-    if (!classes) return null;
+    if (!classes || currentWeek <= 0) return null; // Added check for invalid weeks
     if (!Array.isArray(classes)) classes = [classes];
     const filtered = classes.filter(c => {
-        if ('startWeek' in c && 'endWeek' in c) {
-            return currentWeek >= c.startWeek && currentWeek <= c.endWeek;
+        if (Array.isArray(c.startWeek)) {
+            return c.startWeek.includes(currentWeek); // Check if currentWeek is in the array
+        } else if ('startWeek' in c && 'endWeek' in c) {
+            return currentWeek >= c.startWeek && currentWeek <= c.endWeek; // Range check
         }
-        return true;
+        return true; // Fallback for classes without week constraints
     });
     return filtered.length ? filtered : null;
 }
@@ -174,6 +187,12 @@ function renderPairRow(pair, classesToRender, tbody) {
     }).join('');
     tr.appendChild(subjectCell);
 
+    // Type cell (new)
+    const typeCell = document.createElement('td');
+    typeCell.className = 'px-6 py-3';
+    typeCell.innerHTML = classesToRender.map(cls => `<div>${cls.type || ''}</div>`).join('');
+    tr.appendChild(typeCell);
+
     // Room cell
     const roomCell = document.createElement('td');
     roomCell.className = 'px-6 py-3';
@@ -194,12 +213,12 @@ function renderPairRow(pair, classesToRender, tbody) {
 }
 
 function renderSchedule() {
-    const currentWeek = getWeekNumber();
+    const currentWeek = getWeekNumber() + weekOffset; // Use offset
     const weekNumberEl = document.getElementById('weekNumber');
     if (weekNumberEl) weekNumberEl.textContent = currentWeek;
 
     const currentDayEl = document.getElementById('currentDay');
-    const dayLabel = currentDay === 'WholeWeek' ? 'Whole Week' : currentDay;
+    const dayLabel = dayNamesRu[currentDay] || currentDay;
     if (currentDayEl) currentDayEl.textContent = dayLabel;
 
     const tbody = document.getElementById('scheduleBody');
@@ -217,7 +236,7 @@ function renderSchedule() {
             // Day header row
             const headerRow = document.createElement('tr');
             headerRow.classList.add('bg-indigo-100', 'font-bold', 'text-indigo-900');
-            headerRow.innerHTML = `<td colspan="4" class="text-center py-1">${day}</td>`;
+            headerRow.innerHTML = `<td colspan="5" class="text-center py-1">${dayNamesRu[day] || day}</td>`;
             tbody.appendChild(headerRow);
 
             pairsTimeRanges.forEach((pair, index) => {
@@ -232,7 +251,7 @@ function renderSchedule() {
             if (!hasAnyClass) {
                 const tr = document.createElement('tr');
                 tr.classList.add('text-center', 'italic', 'text-gray-400');
-                tr.innerHTML = `<td colspan="4" class="px-6 py-4">No classes on ${day}</td>`;
+                tr.innerHTML = `<td colspan="5" class="px-6 py-4">Занятий нет на ${dayNamesRu[day] || day}</td>`;
                 tbody.appendChild(tr);
             }
         });
@@ -251,7 +270,7 @@ function renderSchedule() {
         if (!hasAnyClass) {
             const tr = document.createElement('tr');
             tr.classList.add('text-center', 'italic', 'text-gray-400');
-            tr.innerHTML = `<td colspan="4" class="px-6 py-4">No classes today</td>`;
+            tr.innerHTML = `<td colspan="5" class="px-6 py-4">Занятий нет сегодня</td>`;
             tbody.appendChild(tr);
         }
     }
@@ -274,9 +293,9 @@ function formatDuration(ms) {
     const seconds = totalSeconds % 60;
 
     let parts = [];
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`); // Always show seconds if nothing else
+    if (hours > 0) parts.push(`${hours}ч`);
+    if (minutes > 0) parts.push(`${minutes}м`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}с`); // Always show seconds if nothing else
     return parts.join(' ');
 }
 
@@ -286,17 +305,17 @@ function updateTimer() {
     const currentDayEl = document.getElementById('currentDay');
     if (!timerTextEl || !currentDayEl) return;
 
-    currentDayEl.textContent = currentDay;
+    currentDayEl.textContent = dayNamesRu[currentDay] || currentDay;
 
-    // Only show timer for the current day; otherwise, show a static message
+    // Only show timer for the current day and current week; otherwise, show a static message
     const today = daysOfWeek[(new Date().getDay() + 6) % 7];
-    if (currentDay !== today || currentDay === 'WholeWeek' || !scheduleData[currentDay]) {
-        timerTextEl.textContent = currentDay === 'WholeWeek' ? "This is this week's timetable" : "Select today to see the live timer";
+    if (currentDay !== today || weekOffset !== 0 || currentDay === 'WholeWeek' || !scheduleData[currentDay]) {
+        timerTextEl.textContent = currentDay === 'WholeWeek' ? "Это расписание на эту неделю" : "Выберите сегодня, чтобы увидеть живой таймер";
         return;
     }
 
     const daySchedule = scheduleData[currentDay];
-    const currentWeek = getWeekNumber();
+    const currentWeek = getWeekNumber() + weekOffset;
     let timerSet = false;
 
     for (let i = 0; i < pairsTimeRanges.length; i++) {
@@ -313,19 +332,19 @@ function updateTimer() {
 
         if (now < start) {
             const diff = start - now;
-            timerTextEl.textContent = `Next pair starts in ${formatDuration(diff)}`;
+            timerTextEl.textContent = `Следующая пара начинается через ${formatDuration(diff)}`;
             timerSet = true;
             break;
         } else if (now >= start && now < end) {
             const diff = end - now;
-            timerTextEl.textContent = `Current pair ends in ${formatDuration(diff)}`;
+            timerTextEl.textContent = `Текущая пара заканчивается через ${formatDuration(diff)}`;
             timerSet = true;
             break;
         }
     }
 
     if (!timerSet) {
-        timerTextEl.textContent = 'No more classes today';
+        timerTextEl.textContent = 'Больше занятий сегодня нет';
     }
 }
 
@@ -350,6 +369,36 @@ if (showWeekBtn) {
         currentDay = 'WholeWeek';
         document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-300'));
         showWeekBtn.classList.add('ring-4', 'ring-offset-2', 'ring-blue-300');
+        renderSchedule();
+        updateTimer();
+    });
+}
+
+// New: Previous week button
+const prevWeekBtn = document.getElementById('prevWeekBtn');
+if (prevWeekBtn) {
+    prevWeekBtn.addEventListener('click', () => {
+        weekOffset--;
+        renderSchedule();
+        updateTimer();
+    });
+}
+
+// New: Next week button
+const nextWeekBtn = document.getElementById('nextWeekBtn');
+if (nextWeekBtn) {
+    nextWeekBtn.addEventListener('click', () => {
+        weekOffset++;
+        renderSchedule();
+        updateTimer();
+    });
+}
+
+// New: Reset to current week button (optional)
+const resetWeekBtn = document.getElementById('resetWeekBtn');
+if (resetWeekBtn) {
+    resetWeekBtn.addEventListener('click', () => {
+        weekOffset = 0;
         renderSchedule();
         updateTimer();
     });
