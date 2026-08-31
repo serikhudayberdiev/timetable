@@ -473,7 +473,7 @@ let weekOffset = 0;
 
 function getWeekNumber() {
     // 9 февраля 2026 = начало 1 недели
-    const startDate = new Date(2026, 1, 9);
+    const startDate = new Date(2026, 9, 1);
     const now = new Date();
 
     if (now < startDate) return 0;
